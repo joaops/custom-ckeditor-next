@@ -1,34 +1,139 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Custom CKEditor Next
 
-## Getting Started
-
-First, run the development server:
-
+Criar um novo projeto next:
 ```bash
-npm run dev
-# or
-yarn dev
+npx create-next-app custom-ckeditor-next
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acessar o site [online-builder](https://ckeditor.com/ckeditor-5/online-builder/) e gerar um editor customizado.
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+> Ao escolher os Plugins, tome cuidado pois alguns podem quebrar o seu componente, fazendo com que ele não seja carregado. Se acaso os plugins que você escolheu não funcionaram, tente usar o editor com poucos plugins e então vá adicionando aos poucos para saber quais plugins estão funcionando e quais deles estão quebrando o componente.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+Criar a pasta `ckeditor5` dentro do projeto e extrair os arquivos do zip do editor dentro dela.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+Instalar as dependências no projeto:
+```bash
+npm i sass
+npm i highlight.js
+npm i @ckeditor/ckeditor5-react
+```
 
-## Learn More
+Instalar o Editor Customizado no Projeto:
+```bash
+npm add file:./ckeditor5
+```
 
-To learn more about Next.js, take a look at the following resources:
+Mudar os arquivos `css` para `scss` e atualizar as importações.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Remover o código glichê gerado pelo next nos arquivos `./pages/index.js` e `./styles/Home.module.scss`, convertendo em uma página simples.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+`./styles/Home.module.scss`
+```sass
+.container {
+    padding: 0 2rem;
+}
 
-## Deploy on Vercel
+@media (max-width: 600px) {
+    .container {
+        flex-direction: column;
+    }
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`./pages/index.js`
+```js
+import Head from 'next/head'
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+import styles from '../styles/Home.module.scss'
+
+export default function Home() {
+    return (
+        <div className={styles.container}>
+            <Head>
+                <title>Custom CKEditor Next</title>
+                <meta name="description" content="Custom CKEditor Next" />
+                <link rel="icon" href="/favicon.ico" />
+            </Head>
+            <h1>Custom CKEditor Next</h1>
+        </div>
+    )
+}
+```
+
+Criar a pasta `components` na raiz do projeto.
+
+Criar o componente `CustomEditor` dentro da pasta `components`.
+
+`./components/CustomEditor.js`
+```js
+import Editor from 'ckeditor5-custom-build'
+import { CKEditor } from '@ckeditor/ckeditor5-react'
+
+export default function CustomEditor({ data, onReady, onChange, onBlur, onFocus }) {
+
+    const editorConfiguration = {}
+
+    return (
+        <CKEditor
+            editor={Editor}
+            config={editorConfiguration}
+            data={data}
+            onReady={onReady}
+            onChange={onChange}
+            onBlur={onBlur}
+            onFocus={onFocus} />
+    )
+}
+```
+
+Abra o arquivo `./ckeditor5/src/ckeditor.js` e copie a configuração do `Editor.defauldConfig` para dentro da variável `editorConfiguration`.
+
+Crie a página `./pages/editor.js` e adicione o componente `CustomEditor` dentro dela.
+
+`./pages/editor.js`
+```js
+import Head from 'next/head'
+import dynamic from 'next/dynamic'
+import { useState } from 'react'
+
+const CustomEditor = dynamic(() => import('../components/CustomEditor'), { ssr: false })
+
+import styles from '../styles/Home.module.scss'
+
+export default function Editor() {
+    const [contents, setContents] = useState('')
+
+    const handleReady = (editor) => {
+        // console.log('onReady')
+    }
+
+    const handleChange = (event, editor) => {
+        // console.log('onChange')
+        const data = editor.getData()
+        setContents(data)
+    }
+
+    const handleBlur = (event, editor) => {
+        // console.log('onBlur')
+    }
+
+    const handleFocus = (event, editor) => {
+        // console.log('onFocus')
+    }
+
+    return (
+        <div className={styles.container}>
+            <Head>
+                <title>Custom CKEditor Next</title>
+                <meta name="description" content="Custom CKEditor Next" />
+                <link rel="icon" href="/favicon.ico" />
+            </Head>
+            <h1>Custom CKEditor Next</h1>
+            <CustomEditor data={contents} onReady={handleReady} onChange={handleChange} onBlur={handleBlur} onFocus={handleFocus} />
+            <div dangerouslySetInnerHTML={{ __html: contents }} />
+        </div>
+    )
+}
+```
+
+> É necessário carregar o componente `CustomEditor` usando o `dynamic` com `ssr: false` para que o mesmo não seja carregado no lado do servidor. Esse componente deve ser carregado apenas no lado do cliente.
